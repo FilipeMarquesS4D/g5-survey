@@ -230,7 +230,10 @@
 const KEY='g5carrier', NAMEKEY=KEY+'_name', URLKEY=KEY+'_url';
 const MEMBERS=['Youssef Kheiredin','Carlos Filipe da Fonseca Nunes Marques','Thuy My Y Hoang','Theresa-Maria Mersini'];
 let data=JSON.parse(localStorage.getItem(KEY)||'[]');
-let SYNC_URL=localStorage.getItem(URLKEY)||'';
+// Shared backend baked in so the link works for everyone with no setup.
+// (A teammate can still override it via ⚙️ Shared upload setup if ever needed.)
+const DEFAULT_URL='https://script.google.com/macros/s/AKfycbwrL6_ph5S6zCbkRlMyvBKXovMZrZof8tOpWHvDrrwQEc7alCBG5HhBkVVRT1Or2xHeQQ/exec';
+let SYNC_URL=localStorage.getItem(URLKEY)||DEFAULT_URL;
 let pendingPhotos=[]; // staged dataURLs for the current entry
 
 const SETS={
