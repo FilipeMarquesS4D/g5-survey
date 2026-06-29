@@ -216,7 +216,14 @@
   </div>
 
   <div class="card">
-    <h2>5 · Carrier challenges &amp; photos</h2>
+    <h2>5 · Access &amp; delivery timing</h2>
+    <label>Inside a pedestrian / restricted-access zone?</label><div class="chips" data-single id="accessZone"></div>
+    <label>Delivery appears to be time-critical? <span class="hint">(driver rushing, perishables, booked slot)</span></label><div class="chips" data-single id="timeCritical"></div>
+    <label>Likely reason for this delivery time <span class="hint">(why before 10:00 / this slot — forced or chosen?)</span></label><div class="chips" data-single id="timingReason"></div>
+  </div>
+
+  <div class="card">
+    <h2>6 · Carrier challenges &amp; photos</h2>
     <label>What slowed the driver down? <span class="hint">(tap all)</span></label><div class="chips" id="chall"></div>
     <label>Notes / opportunity to improve</label>
     <textarea id="notes" placeholder="Faster? Fewer emissions? Consolidation? Cargo bike? Free text."></textarea>
@@ -296,9 +303,12 @@ const SETS={
   park:['Legal loading zone','Paid parking bay','On the pavement','Double-parked','Bus / bike lane','Pedestrian zone','Side street','Other'],
   dist:['0–10 m','10–30 m','30–60 m','60 m+'],
   issues:['Blocked traffic','Blocked cyclists','Pedestrian conflict','Engine left running','No issue'],
-  chall:['Couldn\'t find parking','Long walk to door','Waiting for staff','Blocked by other vehicle','Congestion','Time-window restriction','Access restriction (bollard/permit)','Other']
+  chall:['Couldn\'t find parking','Long walk to door','Waiting for staff','Blocked by other vehicle','Congestion','Time-window restriction','Access restriction (bollard/permit)','Other'],
+  accessZone:['Yes','No','Unknown'],
+  timeCritical:['Yes','No','Unknown'],
+  timingReason:['Access / time-window restriction','Operational efficiency (carrier choice)','Both / mixed','Unknown']
 };
-const SINGLE=new Set(['vehType','power','vehSize','pkgSize','estab','park','dist']);
+const SINGLE=new Set(['vehType','power','vehSize','pkgSize','estab','park','dist','accessZone','timeCritical','timingReason']);
 const WARN=new Set(['issues','chall']);
 
 function buildChips(){
@@ -355,6 +365,7 @@ function saveObs(){
     packages:val('pkgCount'),people:val('people'),packageSize:getChips('pkgSize')[0]||'',
     equipment:getChips('equip'),establishment:getChips('estab')[0]||'',
     parking:getChips('park')[0]||'',distance:getChips('dist')[0]||'',issues:getChips('issues'),
+    accessZone:getChips('accessZone')[0]||'',timeCritical:getChips('timeCritical')[0]||'',timingReason:getChips('timingReason')[0]||'',
     challenges:getChips('chall'),notes:val('notes'),
     test:document.getElementById('testMode').checked,
     photos:pendingPhotos.slice(),photoUrls:[],synced:false};
@@ -466,7 +477,7 @@ function stamp(){const d=new Date();return''+d.getFullYear()+pad(d.getMonth()+1)
 function who(){return((data[0]&&data[0].observer)||'group5').replace(/\W+/g,'_')}
 function exportJSON(){if(!data.length){toast('Nothing to export');return}download('g5_'+who()+'_'+stamp()+'.json',JSON.stringify(data,null,2),'application/json')}
 function exportCSV(){if(!data.length){toast('Nothing to export');return}
-  const cols=['observer','date','arrive','depart','location','carrier','vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment','establishment','parking','distance','issues','challenges','notes','photoUrls'];
+  const cols=['observer','date','arrive','depart','location','carrier','vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment','establishment','parking','distance','issues','accessZone','timeCritical','timingReason','challenges','notes','photoUrls'];
   const e=v=>{v=Array.isArray(v)?v.join('; '):(v??'');return'"'+String(v).replace(/"/g,'""')+'"'};
   const rows=[cols.join(',')].concat(data.map(o=>cols.map(c=>e(o[c])).join(',')));
   download('g5_'+who()+'_'+stamp()+'.csv',rows.join('\n'),'text/csv')}
@@ -482,8 +493,9 @@ Please:
 1. Summarise recurring patterns in vehicle types, parking behaviour, walking distances, stop durations and powertrain (combustion vs electric).
 2. Identify the carrier's main operational pain points (parking, waiting, congestion, access restrictions, long carries).
 3. Quantify where possible (counts, averages, % of stops with each challenge).
-4. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).
-5. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.
+4. Analyse delivery TIMING: using the arrival times plus the fields "accessZone" (inside a pedestrian/restricted-access zone), "timeCritical", and "timingReason", assess whether early/concentrated deliveries appear to be DRIVEN BY local access or time-window restrictions (forced) versus CHOSEN by carriers for operational efficiency. Note the share of stops in restricted zones and how it relates to timing.
+5. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).
+6. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.
 
 DATA (JSON):
 `+JSON.stringify(slim,null,2);

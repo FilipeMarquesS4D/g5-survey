@@ -25,9 +25,12 @@
 var SHEET_NAME   = 'observations';
 var PHOTO_FOLDER = 'G5 Survey Photos';
 
+// Note: original columns 1-23 keep their positions; new fields are appended at
+// the end so a header upgrade never shifts rows already written to the sheet.
 var HEADERS = ['id','ts','date','observer','location','gps','arrive','depart','carrier',
   'vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment',
-  'establishment','parking','distance','issues','challenges','notes','photoUrls','test'];
+  'establishment','parking','distance','issues','challenges','notes','photoUrls',
+  'test','accessZone','timeCritical','timingReason'];
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
