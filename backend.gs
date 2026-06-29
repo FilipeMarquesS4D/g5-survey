@@ -30,7 +30,8 @@ var PHOTO_FOLDER = 'G5 Survey Photos';
 var HEADERS = ['id','ts','date','observer','location','gps','arrive','depart','carrier',
   'vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment',
   'establishment','parking','distance','issues','challenges','notes','photoUrls',
-  'test','accessZone','timeCritical','timingReason'];
+  'test','accessZone','timeCritical','timingReason',
+  'kerb','opportunity','arrivedFrom','leftTowards'];
 
 function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -133,6 +134,7 @@ function doPost(e) {
         if (h === 'equipment')  return (rec.equipment || []).join('; ');
         if (h === 'issues')     return (rec.issues || []).join('; ');
         if (h === 'challenges') return (rec.challenges || []).join('; ');
+        if (h === 'opportunity') return (rec.opportunity || []).join('; ');
         if (h === 'photoUrls')  return photoUrls.join('  ');
         if (h === 'test')       return rec.test ? true : '';
         return rec[h] != null ? rec[h] : '';
@@ -256,6 +258,12 @@ function buildReportPrompt_(rows) {
     + 'restrictions (forced) versus CHOSEN by carriers for operational efficiency. Report the share of stops in restricted zones and how it relates to timing.\n'
     + '5. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).\n'
     + '6. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.\n\n'
+    + 'This survey supports a course assignment. Address each of these questions where the data allows, and say explicitly when the sample is too small or a field was not captured:\n'
+    + 'A. SPACE / RUNNING METRES: estimate the kerb length currently required for deliveries — per stop from the "kerb" field, and the likely PEAK running-metres needed when several vehicles are present at once on the same street/time window.\n'
+    + 'B. EFFICIENT & SUSTAINABLE LOADING/UNLOADING: assess stop durations, equipment, number of people, powertrain, engine-running and waiting; recommend how to organise it more efficiently and sustainably.\n'
+    + 'C. LARGE vs SMALL VEHICLES: using vehicleType, vehicleSize, kerb and parking, assess how often loading-zone/kerb space is taken by SMALLER vehicles (vans/cars/cargo-bikes) that could free space for larger lorries, and suggest how to keep bays available for big trucks.\n'
+    + 'D. ENCOURAGING SUSTAINABLE RETAILER MOBILITY: using "opportunity", powertrain and establishment, identify where consolidation, cargo-bikes, off-peak windows or micro-hubs apply; cite relevant best practices from other cities and how they would fit the Meir.\n'
+    + 'E. ROUTES: using "arrivedFrom", "leftTowards", "location" and "gps", describe where lorries come from and where they go — in the immediate vicinity and at a larger scale.\n\n'
     + 'DATA (JSON):\n' + JSON.stringify(rows);
 }
 

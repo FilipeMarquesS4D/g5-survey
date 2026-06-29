@@ -199,6 +199,11 @@
     <div class="btnrow"><button class="mini ghost" type="button" onclick="getGPS()">📍 Capture GPS</button></div>
     <div id="gpsout" class="meta" style="margin-top:6px;color:var(--mut);font-size:12px"></div>
 
+    <div class="row">
+      <div><label>Arrived from <span class="hint">(street / direction)</span></label><input type="text" id="arrivedFrom" placeholder="e.g. Leysstraat / N"></div>
+      <div><label>Left towards <span class="hint">(street / direction)</span></label><input type="text" id="leftTowards" placeholder="e.g. Schoenmarkt / W"></div>
+    </div>
+
     <label>Arrival time <span class="hint">(when truck stopped)</span></label>
     <div class="timebtn"><input type="text" id="tArrive" placeholder="HH:MM"><button class="mini" type="button" onclick="now('tArrive')">Now</button></div>
 
@@ -231,6 +236,7 @@
     <h2>4 · Curbside reality (the carrier's parking)</h2>
     <label>Where did they park?</label><div class="chips" data-single id="park"></div>
     <label>Distance vehicle → door <span class="hint">(rough metres)</span></label><div class="chips" data-single id="dist"></div>
+    <label>Kerb length occupied <span class="hint">(running metres the vehicle takes at the kerb)</span></label><div class="chips" data-single id="kerb"></div>
     <label>Issues caused <span class="hint">(tap all)</span></label><div class="chips" id="issues"></div>
   </div>
 
@@ -244,7 +250,8 @@
   <div class="card">
     <h2>6 · Carrier challenges &amp; photos</h2>
     <label>What slowed the driver down? <span class="hint">(tap all)</span></label><div class="chips" id="chall"></div>
-    <label>Notes / opportunity to improve</label>
+    <label>Improvement opportunity <span class="hint">(tap all that apply)</span></label><div class="chips" id="opportunity"></div>
+    <label>Notes <span class="hint">(anything else worth recording)</span></label>
     <textarea id="notes" placeholder="Faster? Fewer emissions? Consolidation? Cargo bike? Free text."></textarea>
 
     <label>Photos <span class="hint">(attach several to illustrate the stop)</span></label>
@@ -322,7 +329,7 @@
 </div>
 
 <div class="save"><div class="wrap">
-  <button type="button" onclick="saveObs()">＋ Save &amp; upload</button>
+  <button type="button" id="saveBtn" onclick="saveObs()">＋ Save &amp; upload</button>
   <span class="count" id="cnt2">0 here · 0 pending</span>
 </div></div>
 
@@ -349,9 +356,11 @@ const SETS={
   chall:['Couldn\'t find parking','Long walk to door','Waiting for staff','Blocked by other vehicle','Congestion','Time-window restriction','Access restriction (bollard/permit)','Other'],
   accessZone:['Yes','No','Unknown'],
   timeCritical:['Yes','No','Unknown'],
-  timingReason:['Access / time-window restriction','Operational efficiency (carrier choice)','Both / mixed','Unknown']
+  timingReason:['Access / time-window restriction','Operational efficiency (carrier choice)','Both / mixed','Unknown'],
+  kerb:['<5 m','5–8 m','8–12 m','12 m+','Unknown'],
+  opportunity:['Consolidation possible','Cargo-bike suitable','Off-peak window','Micro-hub / UCC','Already low-impact','Other']
 };
-const SINGLE=new Set(['vehType','power','vehSize','pkgSize','estab','park','dist','accessZone','timeCritical','timingReason']);
+const SINGLE=new Set(['vehType','power','vehSize','pkgSize','estab','park','dist','accessZone','timeCritical','timingReason','kerb']);
 const WARN=new Set(['issues','chall']);
 
 function buildChips(){
@@ -398,7 +407,15 @@ function renderStage(){
 function rmPhoto(i){pendingPhotos.splice(i,1);renderStage()}
 
 /* ---- save ---- */
-function saveObs(){
+function setSave(state){
+  const b=document.getElementById('saveBtn');
+  b.style.background='';b.disabled=false;
+  if(state==='busy'){b.disabled=true;b.innerHTML='<span class="spin" style="border-color:rgba(255,255,255,.55);border-top-color:#fff"></span> Saving &amp; uploading…';}
+  else if(state==='done'){b.style.background='var(--green-d)';b.textContent='✓ Saved & uploaded';}
+  else if(state==='queued'){b.style.background='var(--amber)';b.textContent='✓ Saved · upload pending';}
+  else{b.innerHTML='＋ Save &amp; upload';}
+}
+async function saveObs(){
   const observer=val('observer');
   if(!observer){toast('⚠️ Select your name first');document.getElementById('observer').focus();return}
   const o={id:Date.now()+'-'+Math.random().toString(36).slice(2,6),observer,
@@ -409,17 +426,22 @@ function saveObs(){
     equipment:getChips('equip'),establishment:getChips('estab')[0]||'',
     parking:getChips('park')[0]||'',distance:getChips('dist')[0]||'',issues:getChips('issues'),
     accessZone:getChips('accessZone')[0]||'',timeCritical:getChips('timeCritical')[0]||'',timingReason:getChips('timingReason')[0]||'',
+    kerb:getChips('kerb')[0]||'',opportunity:getChips('opportunity'),arrivedFrom:val('arrivedFrom'),leftTowards:val('leftTowards'),
     challenges:getChips('chall'),notes:val('notes'),
     test:document.getElementById('testMode').checked,
     photos:pendingPhotos.slice(),photoUrls:[],synced:false};
   const wasTest=o.test;
-  data.push(o);persist();render();syncNow();
-  ['tArrive','tDepart','carrier','pkgCount','people','notes'].forEach(i=>document.getElementById(i).value='');
+  data.push(o);persist();render();
+  ['tArrive','tDepart','carrier','pkgCount','people','notes','arrivedFrom','leftTowards'].forEach(i=>document.getElementById(i).value='');
   document.querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
   document.getElementById('dur').textContent='';gps=null;document.getElementById('gpsout').textContent='';
   document.getElementById('testMode').checked=false;
   pendingPhotos=[];renderStage();window.scrollTo({top:0,behavior:'smooth'});
-  toast(wasTest?'🧪 Test entry saved — uploading (won\'t count)':'✅ Saved — uploading…');
+  if(wasTest)toast('🧪 Test entry — won\'t count for stats');
+  setSave('busy');
+  await syncNow();
+  setSave(data.some(x=>!x.synced)?'queued':'done');
+  setTimeout(()=>setSave('idle'),1800);
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){toast('⚠️ Phone storage full — tap Sync now to free space')}}
 
@@ -520,7 +542,7 @@ function stamp(){const d=new Date();return''+d.getFullYear()+pad(d.getMonth()+1)
 function who(){return((data[0]&&data[0].observer)||'group5').replace(/\W+/g,'_')}
 function exportJSON(){if(!data.length){toast('Nothing to export');return}download('g5_'+who()+'_'+stamp()+'.json',JSON.stringify(data,null,2),'application/json')}
 function exportCSV(){if(!data.length){toast('Nothing to export');return}
-  const cols=['observer','date','arrive','depart','location','carrier','vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment','establishment','parking','distance','issues','accessZone','timeCritical','timingReason','challenges','notes','photoUrls'];
+  const cols=['observer','date','arrive','depart','location','arrivedFrom','leftTowards','carrier','vehicleType','powertrain','vehicleSize','packages','people','packageSize','equipment','establishment','parking','distance','kerb','issues','accessZone','timeCritical','timingReason','opportunity','challenges','notes','photoUrls'];
   const e=v=>{v=Array.isArray(v)?v.join('; '):(v??'');return'"'+String(v).replace(/"/g,'""')+'"'};
   const rows=[cols.join(',')].concat(data.map(o=>cols.map(c=>e(o[c])).join(',')));
   download('g5_'+who()+'_'+stamp()+'.csv',rows.join('\n'),'text/csv')}
@@ -539,6 +561,13 @@ Please:
 4. Analyse delivery TIMING: using the arrival times plus the fields "accessZone" (inside a pedestrian/restricted-access zone), "timeCritical", and "timingReason", assess whether early/concentrated deliveries appear to be DRIVEN BY local access or time-window restrictions (forced) versus CHOSEN by carriers for operational efficiency. Note the share of stops in restricted zones and how it relates to timing.
 5. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).
 6. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.
+
+This survey supports a course assignment. Address each of these questions where the data allows, and say explicitly when the sample is too small or a field wasn't captured:
+A. SPACE / RUNNING METRES: estimate the kerb length currently required for deliveries — per stop from the "kerb" field, and the likely PEAK running-metres needed when several vehicles are present at once on the same street/time window.
+B. EFFICIENT & SUSTAINABLE LOADING/UNLOADING: assess stop durations, equipment, number of people, powertrain, engine-running and waiting; recommend how to organise it more efficiently and sustainably.
+C. LARGE vs SMALL VEHICLES: using vehicleType, vehicleSize, kerb and parking, assess how often loading-zone/kerb space is taken by SMALLER vehicles (vans/cars/cargo-bikes) that could free space for larger lorries, and suggest how to keep bays available for big trucks.
+D. ENCOURAGING SUSTAINABLE RETAILER MOBILITY: using "opportunity", powertrain and establishment, identify where consolidation, cargo-bikes, off-peak windows or micro-hubs apply; cite relevant best practices from other cities and how they'd fit the Meir.
+E. ROUTES: using "arrivedFrom", "leftTowards", "location" and "gps", describe where lorries come from and where they go — in the immediate vicinity and at a larger scale.
 
 DATA (JSON):
 `+JSON.stringify(slim,null,2);
@@ -587,9 +616,13 @@ function renderInsights(rows){
     bars('Powertrain',tally(rows,'powertrain'))+
     bars('Establishment type',tally(rows,'establishment'))+
     bars('Where they parked',tally(rows,'parking'))+
+    bars('Kerb length occupied (running m)',tally(rows,'kerb'))+
     bars('Likely reason for timing',tally(rows,'timingReason'))+
+    bars('Improvement opportunities',tallyMulti(rows,'opportunity'))+
     bars('Top challenges',tallyMulti(rows,'challenges'))+
-    bars('Curbside issues',tallyMulti(rows,'issues'));
+    bars('Curbside issues',tallyMulti(rows,'issues'))+
+    bars('Arrived from',tally(rows,'arrivedFrom'))+
+    bars('Left towards',tally(rows,'leftTowards'));
 }
 async function loadInsights(manual){
   if(SYNC_URL){
