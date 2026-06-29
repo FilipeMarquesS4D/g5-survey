@@ -69,6 +69,8 @@ function durMin_(a, b) {
 /** Live dashboard: per-member counts + aggregate stats (GET ...?action=summary).
  *  Test rows are excluded from every figure. */
 function doGet(e) {
+  var action = e && e.parameter && e.parameter.action;
+  if (action === 'data') return dataRows_();
   var sh = getSheet_();
   var last = sh.getLastRow();
   var byMember = {}, total = 0, durSum = 0, durN = 0, elec = 0, comb = 0, chall = {};
@@ -103,6 +105,7 @@ function doGet(e) {
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
+    if (body.action === 'report') return generateReport_();
     var rec = body.record || {};
     var lock = LockService.getScriptLock();
     lock.waitLock(20000); // serialise concurrent uploads from 4 phones
@@ -165,6 +168,89 @@ function findRowById_(sh, id) {
     }
   }
   return {};
+}
+
+/** Return all non-test observations as JSON objects (for the Insights view). */
+function dataRows_() {
+  var sh = getSheet_();
+  var last = sh.getLastRow();
+  var rows = [];
+  if (last > 1) {
+    var vals = sh.getRange(2, 1, last - 1, HEADERS.length).getValues();
+    var iT = HEADERS.indexOf('test');
+    vals.forEach(function (r) {
+      if (isTest_(r[iT])) return;
+      var o = {};
+      HEADERS.forEach(function (h, i) { if (h !== 'test') o[h] = r[i]; });
+      rows.push(o);
+    });
+  }
+  return json_({ ok: true, rows: rows });
+}
+
+/**
+ * Generate a written AI report with Claude (Opus 4.8).
+ *
+ * Requires an Anthropic API key stored as a Script Property named
+ * ANTHROPIC_API_KEY (Project Settings ▸ Script Properties ▸ Add property).
+ * Get a key at https://console.anthropic.com (this is pay-per-use, separate
+ * from any Claude.ai subscription — roughly a few cents per report). Without a
+ * key this returns {ok:false, error:'no_key'} and the page falls back to the
+ * free copy-the-prompt-into-claude.ai flow.
+ */
+function generateReport_() {
+  var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!key) return json_({ ok: false, error: 'no_key' });
+
+  var rowsResp = JSON.parse(dataRows_().getContent());
+  var rows = rowsResp.rows || [];
+  if (!rows.length) return json_({ ok: false, error: 'no_data' });
+
+  var prompt = buildReportPrompt_(rows);
+  var payload = {
+    model: 'claude-opus-4-8',
+    max_tokens: 8000,
+    thinking: { type: 'adaptive' },
+    output_config: { effort: 'medium' },
+    messages: [{ role: 'user', content: prompt }]
+  };
+  try {
+    var resp = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    var code = resp.getResponseCode();
+    if (code !== 200) {
+      return json_({ ok: false, error: 'Claude API ' + code + ': ' + resp.getContentText().slice(0, 300) });
+    }
+    var data = JSON.parse(resp.getContentText());
+    var text = (data.content || [])
+      .filter(function (b) { return b.type === 'text'; })
+      .map(function (b) { return b.text; })
+      .join('\n').trim();
+    return json_({ ok: true, report: text || '(empty response)', model: data.model, n: rows.length });
+  } catch (err) {
+    return json_({ ok: false, error: String(err) });
+  }
+}
+
+function buildReportPrompt_(rows) {
+  return 'You are an urban-freight researcher analysing a city-centre delivery survey of Antwerp '
+    + '(the Meir / central shopping district), strictly from the CARRIER (delivery operator) perspective — Group 5.\n\n'
+    + 'Below are ' + rows.length + ' field observations (one delivery stop each), collected around the morning peak.\n\n'
+    + 'Write a clear, well-structured report (use headings and short paragraphs/bullets). Please:\n'
+    + '1. Summarise recurring patterns in vehicle types, parking behaviour, walking distances, stop durations and powertrain (combustion vs electric).\n'
+    + "2. Identify the carrier's main operational pain points (parking, waiting, congestion, access restrictions, long carries).\n"
+    + '3. Quantify where possible (counts, averages, % of stops with each challenge).\n'
+    + '4. Analyse delivery TIMING: using arrival times plus the fields "accessZone" (inside a pedestrian/restricted-access zone), '
+    + '"timeCritical", and "timingReason", assess whether early/concentrated deliveries appear DRIVEN BY local access or time-window '
+    + 'restrictions (forced) versus CHOSEN by carriers for operational efficiency. Report the share of stops in restricted zones and how it relates to timing.\n'
+    + '5. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).\n'
+    + '6. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.\n\n'
+    + 'DATA (JSON):\n' + JSON.stringify(rows);
 }
 
 function json_(obj) {

@@ -82,6 +82,18 @@
   .testtoggle{display:flex;align-items:flex-start;gap:9px;background:#f6f2fe;border:1px solid #e2d8f7;border-radius:10px;padding:11px 12px}
   .testtoggle input{width:auto;margin-top:2px}
   .testtoggle label{margin:0;font-size:12.5px;font-weight:400;color:#4a3d63}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;padding:12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:14px;cursor:pointer;color:var(--mut)}
+  .tab.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .bgroup{margin:15px 0 4px;font-size:12px;font-weight:700;color:var(--green-d);text-transform:uppercase;letter-spacing:.4px}
+  .bd{display:flex;align-items:center;gap:9px;margin:7px 0}
+  .bd .bn{flex:0 0 40%;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bd .bbar{flex:1;height:18px;background:#eef2ea;border-radius:5px;overflow:hidden}
+  .bd .bbar i{display:block;height:100%;background:var(--green);width:0;transition:.4s}
+  .bd .bc{flex:0 0 40px;text-align:right;font-size:12.5px;font-weight:700;color:var(--green-d)}
+  .report{white-space:pre-wrap;font-size:13.5px;line-height:1.55;background:#fbfcfa;border:1px solid var(--line);border-radius:10px;padding:13px;margin-top:11px}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid #d2dac8;border-top-color:var(--green-d);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
   .photoadd{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
   .stage{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
   .stage .ph{position:relative}
@@ -147,6 +159,13 @@
     <div class="stats" id="stats"></div>
     <div class="syncwrap" id="syncMsg"></div>
   </div>
+
+  <div class="tabs">
+    <div class="tab on" id="tabCollect" onclick="switchView('collect')">📋 Collect</div>
+    <div class="tab" id="tabInsights" onclick="switchView('insights')">📊 Insights</div>
+  </div>
+
+  <div id="viewCollect">
 
   <div class="card">
     <details>
@@ -274,6 +293,30 @@
         <button class="mini ghost" type="button" onclick="testUrl()">Test connection</button>
       </div>
     </details>
+  </div>
+
+  </div><!-- /viewCollect -->
+
+  <div id="viewInsights" style="display:none">
+    <div class="card">
+      <div class="sumhead">
+        <h2 style="margin:0">Survey insights</h2>
+        <button class="mini ghost" type="button" onclick="loadInsights(true)">⟳ Refresh</button>
+      </div>
+      <div class="stats" id="iHead"></div>
+      <div id="iHead2" class="stats" style="margin-top:8px"></div>
+      <div id="iBody"><p class="help">Loading…</p></div>
+    </div>
+
+    <div class="card">
+      <h2>🤖 AI report</h2>
+      <p class="help" style="margin-top:0">A written carrier-perspective analysis of all collected observations — patterns, pain points, and whether early deliveries look forced or chosen.</p>
+      <div class="btnrow">
+        <button class="mini" id="aiBtn" type="button" onclick="genReport()">✨ Generate AI report (Claude)</button>
+        <button class="mini ghost" type="button" onclick="copyAI()">📋 Copy prompt for claude.ai (free)</button>
+      </div>
+      <div id="reportOut"></div>
+    </div>
   </div>
 
 </div>
@@ -501,6 +544,74 @@ DATA (JSON):
 `+JSON.stringify(slim,null,2);
   const fb=()=>{download('g5_AI_prompt_'+stamp()+'.txt',prompt,'text/plain');toast('Copy blocked — downloaded as .txt')};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(prompt).then(()=>toast('🤖 Copied — paste into Claude/ChatGPT'),fb);else fb();
+}
+
+/* ---- views & insights ---- */
+let insightRows=[];
+function switchView(v){
+  document.getElementById('viewCollect').style.display=v==='collect'?'':'none';
+  document.getElementById('viewInsights').style.display=v==='insights'?'':'none';
+  document.getElementById('tabCollect').classList.toggle('on',v==='collect');
+  document.getElementById('tabInsights').classList.toggle('on',v==='insights');
+  if(v==='insights')loadInsights();
+}
+function pct(n,d){return d?Math.round(n/d*100):0}
+function tile(v,l){return '<div class="stat"><div class="v">'+esc(String(v))+'</div><div class="l">'+esc(l)+'</div></div>'}
+function tally(rows,k){const c={};rows.forEach(o=>{const v=(o[k]==null?'':o[k]).toString().trim();if(v)c[v]=(c[v]||0)+1});return c}
+function tallyMulti(rows,k){const c={};rows.forEach(o=>{const raw=Array.isArray(o[k])?o[k].join(';'):(o[k]==null?'':o[k]);
+  String(raw).split(/[;,]/).forEach(x=>{x=x.trim();if(x)c[x]=(c[x]||0)+1})});return c}
+function bars(title,counts){
+  const ent=Object.keys(counts).map(k=>[k,counts[k]]).sort((a,b)=>b[1]-a[1]);
+  if(!ent.length)return '';
+  const max=Math.max.apply(null,ent.map(e=>e[1]));
+  return '<div class="bgroup">'+esc(title)+'</div>'+ent.map(e=>
+    '<div class="bd"><span class="bn" title="'+esc(e[0])+'">'+esc(e[0])+'</span>'+
+    '<span class="bbar"><i style="width:'+Math.round(e[1]/max*100)+'%"></i></span>'+
+    '<span class="bc">'+e[1]+'</span></div>').join('');
+}
+function renderInsights(rows){
+  insightRows=rows; const n=rows.length;
+  const h1=document.getElementById('iHead'),h2=document.getElementById('iHead2'),body=document.getElementById('iBody');
+  if(!n){h1.innerHTML='';h2.innerHTML='';body.innerHTML='<p class="help">No observations yet.</p>';return}
+  const durs=rows.map(o=>durMin(o.arrive,o.depart)).filter(d=>d!=null);
+  const avg=durs.length?Math.round(durs.reduce((a,b)=>a+b,0)/durs.length):null;
+  const elec=rows.filter(o=>(o.powertrain||'').toString().toLowerCase()==='electric').length;
+  const comb=rows.filter(o=>(o.powertrain||'').toString().toLowerCase()==='combustion').length;
+  const restricted=rows.filter(o=>o.accessZone==='Yes').length;
+  const crit=rows.filter(o=>o.timeCritical==='Yes').length;
+  const before10=rows.filter(o=>{const d=durMin('00:00',o.arrive);return d!=null&&d<600}).length;
+  h1.innerHTML=tile(n,'stops')+tile(avg!=null?avg+'m':'—','avg stop')+tile((elec+comb)?pct(elec,elec+comb)+'%':'—','electric');
+  h2.innerHTML=tile(pct(restricted,n)+'%','restricted zone')+tile(pct(crit,n)+'%','time-critical')+tile(pct(before10,n)+'%','arrive <10:00');
+  body.innerHTML=
+    bars('Vehicle type',tally(rows,'vehicleType'))+
+    bars('Powertrain',tally(rows,'powertrain'))+
+    bars('Establishment type',tally(rows,'establishment'))+
+    bars('Where they parked',tally(rows,'parking'))+
+    bars('Likely reason for timing',tally(rows,'timingReason'))+
+    bars('Top challenges',tallyMulti(rows,'challenges'))+
+    bars('Curbside issues',tallyMulti(rows,'issues'));
+}
+async function loadInsights(manual){
+  if(SYNC_URL){
+    try{const r=await fetch(SYNC_URL+'?action=data&t='+Date.now());const j=await r.json();
+      if(j&&j.ok){renderInsights(j.rows||[]);return}}catch(e){}
+  }
+  renderInsights(data.filter(o=>!o.test));
+  if(manual&&!SYNC_URL)toast('Showing this phone only — set the shared URL in ⚙️ setup');
+}
+async function genReport(){
+  const out=document.getElementById('reportOut'),btn=document.getElementById('aiBtn');
+  if(!SYNC_URL){out.innerHTML='<p class="help">Connect the shared sheet first (⚙️ setup), or use <b>Copy prompt for claude.ai</b>.</p>';return}
+  btn.disabled=true;out.innerHTML='<p class="help"><span class="spin"></span> Claude is analysing the data… this can take ~20–40s.</p>';
+  try{
+    const r=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'report'})});
+    const j=await r.json();
+    if(j&&j.ok&&j.report){out.innerHTML='<div class="report">'+esc(j.report)+'</div>';}
+    else if(j&&j.error==='no_key'){out.innerHTML='<p class="help">⚠️ No Anthropic API key is set on the backend, so the automatic report is off. Use <b>📋 Copy prompt for claude.ai (free)</b> instead — or add a key (see the README / backend.gs header).</p>';}
+    else if(j&&j.error==='no_data'){out.innerHTML='<p class="help">No (non-test) observations to analyse yet.</p>';}
+    else{out.innerHTML='<p class="help">⚠️ '+esc((j&&j.error)||'Report failed')+'</p>';}
+  }catch(e){out.innerHTML='<p class="help">⚠️ Could not reach the backend. Check your connection.</p>';}
+  btn.disabled=false;
 }
 
 /* ---- init ---- */
