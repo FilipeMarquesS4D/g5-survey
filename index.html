@@ -12,10 +12,11 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--ink);font-size:16px;line-height:1.4;padding-bottom:90px}
-  header{background:var(--green);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:10;
-         box-shadow:0 2px 6px rgba(0,0,0,.12)}
-  header h1{margin:0;font-size:18px;font-weight:700}
-  header p{margin:2px 0 0;font-size:12.5px;opacity:.92}
+  header{position:relative;color:#fff;overflow:hidden;background:var(--green);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .banner{display:block;width:100%;height:132px}
+  .htext{position:absolute;left:16px;right:16px;bottom:11px}
+  header h1{margin:0;font-size:18px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.45)}
+  header p{margin:2px 0 0;font-size:12.5px;opacity:.96;text-shadow:0 1px 4px rgba(0,0,0,.45)}
   .wrap{max-width:680px;margin:0 auto;padding:14px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
   .card h2{margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--green-d)}
@@ -73,6 +74,14 @@
   .bar{height:8px;background:#e7ecdf;border-radius:6px;overflow:hidden;flex:1.4}
   .bar i{display:block;height:100%;background:var(--green);width:0;transition:.4s}
   .mcnt{font-size:14px;font-weight:800;color:var(--green-d);min-width:26px;text-align:right}
+  .stats{display:flex;gap:8px;margin-top:13px}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center;min-width:0}
+  .stat .v{font-size:18px;font-weight:800;color:var(--green-d);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .stat .l{font-size:10.5px;color:var(--mut);margin-top:3px;line-height:1.15}
+  .badge-test{background:#ede7fb;color:#5b3fb0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:4px}
+  .testtoggle{display:flex;align-items:flex-start;gap:9px;background:#f6f2fe;border:1px solid #e2d8f7;border-radius:10px;padding:11px 12px}
+  .testtoggle input{width:auto;margin-top:2px}
+  .testtoggle label{margin:0;font-size:12.5px;font-weight:400;color:#4a3d63}
   .photoadd{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
   .stage{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
   .stage .ph{position:relative}
@@ -85,8 +94,42 @@
 </head>
 <body>
 <header>
-  <h1>Group 5 · City-Centre Carrier Perspective</h1>
-  <p>Antwerp field survey — observe the delivery <b>driver's</b> experience</p>
+  <svg class="banner" viewBox="0 0 1200 150" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Urban delivery logistics illustration">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cc63f"/><stop offset="1" stop-color="#6aa019"/></linearGradient>
+      <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1"><stop offset="0.4" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#16280a" stop-opacity="0.6"/></linearGradient>
+    </defs>
+    <rect width="1200" height="150" fill="url(#sky)"/>
+    <circle cx="1085" cy="38" r="26" fill="#fff" opacity="0.22"/>
+    <g fill="#fff" opacity="0.13">
+      <rect x="55" y="58" width="70" height="92"/><rect x="140" y="38" width="55" height="112"/><rect x="205" y="74" width="60" height="76"/>
+      <rect x="690" y="54" width="65" height="96"/><rect x="765" y="34" width="50" height="116"/><rect x="825" y="68" width="70" height="82"/><rect x="905" y="48" width="48" height="102"/>
+    </g>
+    <g fill="#fff" opacity="0.20"><rect x="152" y="52" width="8" height="8"/><rect x="170" y="52" width="8" height="8"/><rect x="152" y="72" width="8" height="8"/><rect x="170" y="72" width="8" height="8"/><rect x="777" y="48" width="7" height="7"/><rect x="793" y="48" width="7" height="7"/></g>
+    <rect x="0" y="126" width="1200" height="24" fill="#3c5417" opacity="0.5"/>
+    <g stroke="#fff" stroke-width="3" stroke-dasharray="22 18" opacity="0.5"><line x1="0" y1="138" x2="1200" y2="138"/></g>
+    <g stroke="#fff" stroke-width="3" opacity="0.5" stroke-linecap="round"><line x1="300" y1="96" x2="360" y2="96"/><line x1="285" y1="108" x2="335" y2="108"/></g>
+    <g>
+      <rect x="380" y="78" width="150" height="44" rx="5" fill="#fff"/>
+      <path d="M530 90 h40 l24 20 v12 h-64 z" fill="#eef3e6"/>
+      <rect x="540" y="92" width="34" height="18" rx="2" fill="#bcd49a"/>
+      <rect x="392" y="86" width="22" height="6" rx="2" fill="#7ab51d"/>
+      <rect x="398" y="98" width="62" height="18" rx="2" fill="#7ab51d" opacity="0.55"/>
+      <circle cx="424" cy="126" r="13" fill="#2a2f25"/><circle cx="424" cy="126" r="5" fill="#cfd6c6"/>
+      <circle cx="560" cy="126" r="13" fill="#2a2f25"/><circle cx="560" cy="126" r="5" fill="#cfd6c6"/>
+    </g>
+    <g fill="#fff" opacity="0.85"><rect x="610" y="104" width="20" height="18" rx="2"/><rect x="632" y="110" width="14" height="12" rx="2"/></g>
+    <g stroke="#ffffff" stroke-width="4" fill="none" opacity="0.9" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="985" y="86" width="40" height="26" rx="3" fill="#fff" stroke="none" opacity="0.85"/>
+      <circle cx="1000" cy="120" r="14"/><circle cx="1090" cy="120" r="14"/>
+      <path d="M1000 120 L1035 120 L1055 96 M1035 120 L1062 96 L1090 120"/>
+    </g>
+    <rect width="1200" height="150" fill="url(#scrim)"/>
+  </svg>
+  <div class="htext">
+    <h1>Group 5 · City-Centre Carrier Perspective</h1>
+    <p>Antwerp field survey — observe the delivery <b>driver's</b> experience</p>
+  </div>
 </header>
 
 <div class="wrap">
@@ -101,6 +144,7 @@
       </div>
     </div>
     <div class="members" id="members"></div>
+    <div class="stats" id="stats"></div>
     <div class="syncwrap" id="syncMsg"></div>
   </div>
 
@@ -187,10 +231,18 @@
   </div>
 
   <div class="card">
+    <div class="testtoggle">
+      <input type="checkbox" id="testMode">
+      <label for="testMode">🧪 <b>Test entry</b> — saves &amp; uploads, but is excluded from the stats and ignored by the AI analysis. Use it to check the whole pipeline works, then delete the row in the sheet.</label>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>My observations on this phone (<span id="cnt">0</span>)</h2>
     <div id="list"><p class="help">Nothing yet — save your first stop above.</p></div>
     <div class="btnrow">
       <button class="mini" type="button" onclick="syncNow()">☁ Sync now</button>
+      <button class="mini ghost" id="sheetBtn" type="button" style="display:none" onclick="openSheet()">📊 Open Google Sheet</button>
       <button class="mini ghost" type="button" onclick="copyAI()">🤖 Copy AI summary</button>
       <button class="mini ghost" type="button" onclick="exportJSON()">⬇ JSON backup</button>
       <button class="mini ghost" type="button" onclick="exportCSV()">⬇ CSV</button>
@@ -304,12 +356,16 @@ function saveObs(){
     equipment:getChips('equip'),establishment:getChips('estab')[0]||'',
     parking:getChips('park')[0]||'',distance:getChips('dist')[0]||'',issues:getChips('issues'),
     challenges:getChips('chall'),notes:val('notes'),
+    test:document.getElementById('testMode').checked,
     photos:pendingPhotos.slice(),photoUrls:[],synced:false};
+  const wasTest=o.test;
   data.push(o);persist();render();syncNow();
   ['tArrive','tDepart','carrier','pkgCount','people','notes'].forEach(i=>document.getElementById(i).value='');
   document.querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
   document.getElementById('dur').textContent='';gps=null;document.getElementById('gpsout').textContent='';
-  pendingPhotos=[];renderStage();window.scrollTo({top:0,behavior:'smooth'});toast('✅ Saved — uploading…');
+  document.getElementById('testMode').checked=false;
+  pendingPhotos=[];renderStage();window.scrollTo({top:0,behavior:'smooth'});
+  toast(wasTest?'🧪 Test entry saved — uploading (won\'t count)':'✅ Saved — uploading…');
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){toast('⚠️ Phone storage full — tap Sync now to free space')}}
 
@@ -323,6 +379,7 @@ function render(){
     const ph=(o.photos&&o.photos.length?o.photos:o.photoUrls||[]);
     return `<div class="obs"><button class="x" onclick="del('${o.id}')">delete</button>
       <b>${esc(o.vehicleType||'Vehicle?')}</b> · ${esc(o.establishment||'establishment?')} ${o.carrier?'· '+esc(o.carrier):''}
+      ${o.test?'<span class="badge-test">TEST</span>':''}
       ${o.synced?'':'<span class="pill pend" style="font-size:10px">pending</span>'}
       <div class="meta">${esc(o.location||'—')} · ${o.arrive||'--:--'}${o.depart?'→'+o.depart:''}</div>
       ${ph.length?'<div class="thumbs">'+ph.map(s=>`<img src="${s}">`).join('')+'</div>':''}</div>`;}).join('');
@@ -341,19 +398,36 @@ function renderMembers(counts,total){
       <span class="bar"><i style="width:${Math.round(c/max*100)}%"></i></span>
       <span class="mcnt">${c}</span></div>`;}).join('');
 }
-function localCounts(){const c={},t=data.length;data.forEach(o=>c[o.observer]=(c[o.observer]||0)+1);return{c,t}}
+function localCounts(){const c={};let t=0;data.filter(o=>!o.test).forEach(o=>{c[o.observer]=(c[o.observer]||0)+1;t++});return{c,t}}
+function durMin(a,b){const m=t=>{const x=/^(\d{1,2}):(\d{2})$/.exec(String(t||'').trim());return x?+x[1]*60+ +x[2]:null};
+  const A=m(a),B=m(b);if(A==null||B==null)return null;let d=B-A;if(d<0)d+=1440;return d}
+function localStats(){const rows=data.filter(o=>!o.test);let ds=0,dn=0,e=0,c=0,t={};
+  rows.forEach(o=>{const d=durMin(o.arrive,o.depart);if(d!=null){ds+=d;dn++}
+    const p=(o.powertrain||'').toLowerCase();if(p==='electric')e++;else if(p==='combustion')c++;
+    (o.challenges||[]).forEach(x=>{if(x)t[x]=(t[x]||0)+1})});
+  let tc='',tn=0;for(const k in t)if(t[k]>tn){tn=t[k];tc=k}
+  return{avgDuration:dn?Math.round(ds/dn):null,pctElectric:(e+c)?Math.round(e/(e+c)*100):null,topChallenge:tc}}
+function renderStats(s){const el=document.getElementById('stats');if(!s){el.innerHTML='';return}
+  const dur=s.avgDuration!=null?s.avgDuration+' min':'—', pe=s.pctElectric!=null?s.pctElectric+'%':'—', tc=s.topChallenge||'—';
+  el.innerHTML=`<div class="stat"><div class="v">${dur}</div><div class="l">avg stop</div></div>
+    <div class="stat"><div class="v">${pe}</div><div class="l">electric</div></div>
+    <div class="stat" title="${esc(tc)}"><div class="v" style="font-size:12.5px">${esc(tc)}</div><div class="l">top challenge</div></div>`}
+let sheetUrl='';
+function openSheet(){if(sheetUrl)window.open(sheetUrl,'_blank');else toast('Sheet link not loaded yet — tap Refresh')}
 async function refreshSummary(manual){
-  if(!SYNC_URL){const{c,t}=localCounts();renderMembers(c,t);setPill('local','○ local only');
+  if(!SYNC_URL){const{c,t}=localCounts();renderMembers(c,t);renderStats(localStats());setPill('local','○ local only');
     document.getElementById('syncMsg').textContent='No shared URL set — counts show this phone only. See ⚙️ setup.';
     if(manual)toast('Local only — set the shared URL in ⚙️ setup');return}
   try{
     const r=await fetch(SYNC_URL+'?action=summary&t='+Date.now());const j=await r.json();
     if(!j||!j.ok)throw 0;
     renderMembers(j.byMember||{},j.total||0);
+    renderStats(j.stats||localStats());
+    if(j.url){sheetUrl=j.url;document.getElementById('sheetBtn').style.display='';}
     const pend=data.filter(o=>!o.synced).length;
     if(pend){setPill('pend','⟳ '+pend+' pending')}else{setPill('live','● live')}
     document.getElementById('syncMsg').textContent='Live from shared sheet · updated '+new Date().toLocaleTimeString('en-GB').slice(0,5)+(pend?' · '+pend+' not yet uploaded from this phone':'');
-  }catch(e){const{c,t}=localCounts();renderMembers(c,t);setPill('err','⚠ offline');
+  }catch(e){const{c,t}=localCounts();renderMembers(c,t);renderStats(localStats());setPill('err','⚠ offline');
     document.getElementById('syncMsg').textContent='Can\'t reach the shared sheet (offline?). Showing this phone; will retry.';}
 }
 
@@ -397,8 +471,9 @@ function exportCSV(){if(!data.length){toast('Nothing to export');return}
   const rows=[cols.join(',')].concat(data.map(o=>cols.map(c=>e(o[c])).join(',')));
   download('g5_'+who()+'_'+stamp()+'.csv',rows.join('\n'),'text/csv')}
 function copyAI(){
-  if(!data.length){toast('Nothing to copy');return}
-  const slim=data.map(o=>{const{photos,...rest}=o;return{...rest,photoUrls:o.photoUrls||[]}});
+  const real=data.filter(o=>!o.test);
+  if(!real.length){toast(data.length?'Only test entries here — nothing to analyse':'Nothing to copy');return}
+  const slim=real.map(o=>{const{photos,test,...rest}=o;return{...rest,photoUrls:o.photoUrls||[]}});
   const prompt=`You are an urban-freight researcher analysing a city-centre delivery survey of Antwerp (the Meir / central shopping district), strictly from the CARRIER (delivery operator) perspective — Group 5.
 
 Below are ${slim.length} field observations (one delivery stop each), collected around the morning peak.
@@ -421,7 +496,7 @@ buildChips();renderStage();
 if(SYNC_URL)document.getElementById('syncUrl').value=SYNC_URL;
 const savedName=localStorage.getItem(NAMEKEY);if(savedName)document.getElementById('observer').value=savedName;
 document.getElementById('observer').addEventListener('change',e=>localStorage.setItem(NAMEKEY,e.target.value));
-render();refreshSummary();
+render();renderStats(localStats());refreshSummary();
 setInterval(()=>{if(data.some(o=>!o.synced))syncNow();else refreshSummary();},25000);
 window.addEventListener('online',syncNow);
 </script>
