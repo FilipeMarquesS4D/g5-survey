@@ -71,6 +71,7 @@ function durMin_(a, b) {
 function doGet(e) {
   var action = e && e.parameter && e.parameter.action;
   if (action === 'data') return dataRows_();
+  if (action === 'photo') return photoB64_(e.parameter.id);
   var sh = getSheet_();
   var last = sh.getLastRow();
   var byMember = {}, total = 0, durSum = 0, durN = 0, elec = 0, comb = 0, chall = {};
@@ -182,6 +183,11 @@ function dataRows_() {
       if (isTest_(r[iT])) return;
       var o = {};
       HEADERS.forEach(function (h, i) { if (h !== 'test') o[h] = r[i]; });
+      // Parse Drive file IDs out of the stored viewer links so each event's
+      // photos can be fetched by id via ?action=photo (used for full reports).
+      o.photoIds = String(o.photoUrls || '').split(/\s+/)
+        .map(function (u) { var m = /\/d\/([-\w]+)/.exec(u); return m ? m[1] : ''; })
+        .filter(String);
       rows.push(o);
     });
   }
@@ -251,6 +257,27 @@ function buildReportPrompt_(rows) {
     + '5. Give evidence-based recommendations to improve carrier efficiency and cut emissions (consolidation, off-peak windows, micro-hubs, cargo bikes, loading-zone policy).\n'
     + '6. Clearly separate OBSERVATIONS from INTERPRETATIONS and from PROPOSED SOLUTIONS. Flag small sample size where relevant.\n\n'
     + 'DATA (JSON):\n' + JSON.stringify(rows);
+}
+
+/**
+ * Return one photo as base64 (GET ...?action=photo&id=<driveFileId>), so a
+ * report can correlate the image with its observation. SECURITY: only files
+ * that live inside the G5 Survey Photos folder are served — the endpoint
+ * cannot be used to read arbitrary files in the account's Drive.
+ */
+function photoB64_(id) {
+  if (!id) return json_({ ok: false, error: 'no_id' });
+  try {
+    var file = DriveApp.getFileById(id);
+    var inFolder = false, parents = file.getParents();
+    while (parents.hasNext()) { if (parents.next().getName() === PHOTO_FOLDER) { inFolder = true; break; } }
+    if (!inFolder) return json_({ ok: false, error: 'not_in_folder' });
+    var blob = file.getBlob();
+    return json_({ ok: true, id: id, name: file.getName(),
+                   mime: blob.getContentType(), b64: Utilities.base64Encode(blob.getBytes()) });
+  } catch (err) {
+    return json_({ ok: false, error: String(err) });
+  }
 }
 
 function json_(obj) {
